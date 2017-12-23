@@ -1,0 +1,14 @@
+{
+	"description": "<p>Tree.tv - online фильмы - новинки кино в хорошем качестве онлайн - бесплатно<p>For additional info visit <a href=\"http://tree.tv\">http://tree.tv</a>",
+	"author": "lprot", 
+	"homepage": "http://github.com/lprot/movian-plugin-treetv",
+	"title": "Tree.tv",
+	"synopsis": "Tree.tv - online фильмы - новинки кино в хорошем качестве онлайн - бесплатно",
+	"version": "0.5.9",
+        "file": "treetv.js",
+	"showtimeVersion": "4.8",
+	"type": "ecmascript",
+	"id": "tree.tv",
+	"category": "video",
+	"icon": "logo.png"
+}
