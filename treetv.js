@@ -839,7 +839,7 @@
                     Referer: BASE_URL + unescape(url) + fromPage,
                     'User-Agent': service.UA
                 }
-            }).toString();
+            }).toString().replace(/^<!--[\s\S]*?[\r\n]/gm, '');
             page.loading = false;
             var htmlBlock = doc.match(/<div class="main_content_open"([\s\S]*?)<div class="give_more"/)[1];
             var match = re.exec(htmlBlock);
@@ -882,10 +882,6 @@
         page.loading = false;
     }
 
-    plugin.addURI(PREFIX + ":submenu:(.*):(.*)", function(page, url, title) {
-        scrape(page, url, title);
-    });
-
     plugin.addURI(PREFIX + ":trailers", function(page) {
         setPageHeader(page, 'Скоро в кино');
         var doc = showtime.httpReq(BASE_URL+ '/default/index/trailers', {
@@ -923,6 +919,10 @@
         page.loading = false;
     });
 
+    plugin.addURI(PREFIX + ":scrape:(.*):(.*)", function(page, url, title) {
+        scrape(page, url, title);
+    });
+
     plugin.addURI(PREFIX + ":start", function(page) {
         setPageHeader(page, plugin.getDescriptor().synopsis);
 
@@ -934,13 +934,10 @@
         var htmlBlock = doc.match(/<div class="top_menu"([\s\S]*?)<\/div>/);
         if (htmlBlock) {
             // 1-link, 2-title
-            var re = /<a href="([\s\S]*?)">([\s\S]*?)</g;
+            var re = /<li class=[\s\S]*?href="([\s\S]*?)">([\s\S]*?)</g;
             var match = re.exec(htmlBlock[1]);
             while (match) {
-                var route = ':submenu:';
-                if (match[1] == '/collection')
-                    route = ':collections:'
-                page.appendItem(PREFIX + route + match[1] + ':' + escape(match[2]), 'directory', {
+                page.appendItem(PREFIX + ':scrapeSmall:' + match[1] + '/sortType/new/page/:' + escape(match[2]) + ':1', 'directory', {
                    title: trim(match[2])
                 });
                 match = re.exec(htmlBlock[1]);
@@ -985,7 +982,6 @@
         var re = /<div class="item">([\s\S]*?)<div class="smoll_year">([\s\S]*?)<\/div>[\s\S]*?<div class="smoll_janr">([\s\S]*?)<\/div>[\s\S]*?<a href="([\s\S]*?)">[\s\S]*?<img([\s\S]*?)\/>[\s\S]*?"[\s\S]*?<span[\s\S]*?>([\s\S]*?)<\/span>[\s\S]*?<span>([\s\S]*?)<\/span>[\s\S]*?<div class="rating([\s\S]*?)<\/div>[\s\S]*?<span class="quality[\s\S]*?">([\s\S]*?)<\/span>/g;
 
         function loader() {
-
             if (!tryToSearch) return false;
             page.loading = true;
             if (+paginator)
@@ -1000,7 +996,6 @@
                 doc = showtime.httpReq(BASE_URL + unescape(url), {
                      headers: {
                         Host: 'tree.tv',
-                        //Referer: BASE_URL + unescape(url),
                         'User-Agent': service.UA,
                         'X-Requested-With': 'XMLHttpRequest'
                      }
@@ -1018,11 +1013,12 @@
                      var icon = match[5].match(/src="([\s\S]*?)"/)[1];
                      var rating = match[8].match(/<span class="green">/g);
                      var info = match[1].match(/<div class="item_name_text">([\s\S]*?)<\/div>/);
+		     var genre = match[3].match(/">([\s\S]*?)<\/a>/);
                      page.appendItem(PREFIX + ":indexItem:" + match[4], 'video', {
                          title: new showtime.RichText((match[9] ? coloredStr(match[9], blue) + ' ' : '') + title),
                          icon: icon.match('http') ? icon : BASE_URL + icon,
                          rating:  rating ? rating.length * 10 : 0,
-                         genre: trim(match[3]),
+                         genre: (genre ? genre[1] : trim(match[3])),
                          year: +trim(match[2]),
                          description: new showtime.RichText(coloredStr("Добавлен: ", orange) +
                              trim(match[6]) + coloredStr(" Просмотров: ", orange) + match[7] +
