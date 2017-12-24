@@ -356,7 +356,7 @@
                      'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
                      Host: 'tree.tv',
                      Origin: 'http://tree.tv',
-                     Referer: BASE_URL + referer,
+                     Referer: BASE_URL + unescape(referer),
                      'X-Requested-With': 'XMLHttpRequest'
                  },
                  postdata: data
@@ -516,57 +516,13 @@
         while (match) {
             // 1-player link, 2-title, 3-date
             var file = match[1].match(/data-href="([\s\S]*?)" href="#">([\s\S]*?)<\/a>[\s\S]*?<div class="date_file">([\s\S]*?)<\/div>/);
-            page.appendItem(PREFIX + ':play:' + escape(file[1]) + ':' + escape(trim(file[2])) + ':' + url, 'video', {
+            page.appendItem(PREFIX + ':play:' + escape(file[1]) + ':' + escape(trim(file[2])) + ':' + escape(url), 'video', {
                 title: new showtime.RichText(trim(file[2]) + colorStr(trim(file[3]), blue)),
                 description: file[3]
             });
            match = re.exec(doc);
            i++;
         }
-    });
-
-    plugin.addURI(PREFIX + ":showScreenshots:(.*):(.*)", function(page, url, title) {
-        setPageHeader(page, unescape(title));
-        page.model.contents = 'grid'
-        if (!screenshots) 
-            screenshots = getDoc(BASE_URL + url).match(/<div class="screens">([\s\S]*?)<div class="item_right">/)[1];
-        page.loading = false;
-
-        var c = 1, re = /href="([\s\S]*?)">/g;
-        var match = re.exec(screenshots);
-        while (match) {
-            page.appendItem(BASE_URL + escape(match[1]), 'image', {
-                title: 'Скриншот' + c,
-                icon: BASE_URL + match[1]
-            });
-            c++;
-            match = re.exec(screenshots);
-        }
-    });
-
-    plugin.addURI(PREFIX + ":scrapeCollection:(.*):(.*)", function(page, url, title) {
-        setPageHeader(page, unescape(title));
-
-        //1-year, 2-genre, 3-link, 4-icon, 5-title, 6-added, 7-views,
-        //8-rating, 9-quality
-        var re = /<div class="item">[\s\S]*?data-href="">([\s\S]*?)<\/a>[\s\S]*?<a href[\s\S]*?>([\s\S]*?)<\/a>[\s\S]*?<a href="([\s\S]*?)">[\s\S]*?<img src="([\s\S]*?)"[\s\S]*?href="[\s\S]*?">([\s\S]*?)<\/a>[\s\S]*?<span>([\s\S]*?)<\/span>[\s\S]*?<span>([\s\S]*?)<\/span>[\s\S]*?<div class="rating([\s\S]*?)<\/div>[\s\S]*?<span class="quality[\s\S]*?">([\s\S]*?)<\/span>/g;
-        var doc = showtime.httpReq(unescape(url)).toString();
-        page.loading = false;
-        var match = re.exec(doc);
-        while (match) {
-            var rating = match[8].match(/<span class="green">/g);
-            page.appendItem(PREFIX + ":indexItem:" + match[3], 'video', {
-                title: new showtime.RichText((match[9] ? coloredStr(match[9], blue) + ' ' : '') + trim(match[5])),
-                icon: BASE_URL + escape(match[4]),
-                rating:  rating ? rating.length * 10 : 0,
-                genre: trim(match[2]),
-                year: +trim(match[1]),
-                description: new showtime.RichText(coloredStr("Добавлен: ", orange) +
-                    trim(match[6]) + coloredStr(" Просмотров: ", orange) + match[7])
-            });
-            match = re.exec(doc);
-        }
-        page.loading = false;
     });
 
     plugin.addURI(PREFIX + ":processJSON:(.*):(.*)", function(page, url, title) {
@@ -589,6 +545,25 @@
         page.loading = false;
     });
 
+    plugin.addURI(PREFIX + ":showScreenshots:(.*):(.*)", function(page, url, title) {
+        setPageHeader(page, unescape(title));
+        page.model.contents = 'grid'
+        if (!screenshots)
+            screenshots = getDoc(BASE_URL + url).match(/<div class="screens">([\s\S]*?)<div class="item_right">/)[1];
+        page.loading = false;
+
+        var c = 1, re = /href="([\s\S]*?)">/g;
+        var match = re.exec(screenshots);
+        while (match) {
+            page.appendItem(BASE_URL + escape(match[1]), 'image', {
+                title: 'Скриншот' + c,
+                icon: BASE_URL + match[1]
+            });
+            c++;
+            match = re.exec(screenshots);
+        }
+    });
+
     var screenshots = 0;
     plugin.addURI(PREFIX + ":indexItem:(.*)", function(page, url) {
         page.loading = true;
@@ -599,20 +574,29 @@
         page.loading = false;
 
         // 1-title, 2-icon, 3-views, 4-comments, 5-screenshots, 6-quality,
-        // 7-genre, 8-year, 9-country, 10-directors, 11-type soundtrack, 12-duration or number of series,
+        // 7-genre, 8-year, 9-country, 10-directors, 11-type of the soundtrack, 12-duration/number of series/absent,
         // 13-actors, 14-description, 15-info, 16-rating
-        var match = doc.match(/<div class="content_open">[\s\S]*?<img alt="([\s\S]*?)" [\s\S]*?src="([\s\S]*?)"[\s\S]*?<span>([\s\S]*?)<\/span>[\s\S]*?<span>([\s\S]*?)<\/span>[\s\S]*?<div class="screens">([\s\S]*?)<div class="item_right">[\s\S]*?<div class="quality_film"([\s\S]*?)<\/div>[\s\S]*?<div class="section_item list_janr">([\s\S]*?)<\/div>[\s\S]*?href="#">([\s\S]*?)<\/a>[\s\S]*?<span class="item">([\s\S]*?)<\/span>[\s\S]*?<div class="span_content">([\s\S]*?)<\/div>[\s\S]*?<span>([\s\S]*?)<\/span>[\s\S]*?<div class="section_item">([\s\S]*?)<\/div>[\s\S]*?<div class="ava_actors"([\s\S]*?)<div class="section_item">[\s\S]*?<div class="description[\s\S]*?>([\s\S]*?)<\/div>([\s\S]*?)<div class="more_actions">[\s\S]*?<span class="green">([\s\S]*?)<\/span>/);
+        var match = doc.match(/<div class="content_open">[\s\S]*?<img alt="([\s\S]*?)" [\s\S]*?src="([\s\S]*?)"[\s\S]*?<span>([\s\S]*?)<\/span>[\s\S]*?<span>([\s\S]*?)<\/span>[\s\S]*?<div class="screens">([\s\S]*?)<div class="item_right">([\s\S]*?)<div class="section_item list_janr">([\s\S]*?)<\/div>[\s\S]*?href="#">([\s\S]*?)<\/a>[\s\S]*?<span class="item">([\s\S]*?)<\/span>[\s\S]*?<div class="span_content">([\s\S]*?)<\/div>[\s\S]*?<span>([\s\S]*?)<\/span>([\s\S]*?)<div class="ava_actors"([\s\S]*?)<div class="section_item">[\s\S]*?<div class="description[\s\S]*?>([\s\S]*?)<\/div>([\s\S]*?)<div class="more_actions">[\s\S]*?<span class="green">([\s\S]*?)<\/span>/);
+
+        screenshots = match[5];
+        var qualityBlob = match[6], genresBlob = match[7], year = +match[8], 
+            directorsBlob = match[10], actorsBlob = match[13], infoBlob = match[15];
 
         var tmp = '', first = genres = directors = actors = info = duration = numOfSeries = 0;
+
+        if (qualityBlob) {
+            var quality = qualityBlob.match(/<span class="quality_film[\s\S]*?">([\s\S]*?)<\/span>/);
+            if (quality) quality = quality[1];
+        }
+
         title = trim(match[1]);
-        screenshots = match[5];
-        var genresBlob = match[7], year = +match[8], directorsBlob = match[10], actorsBlob = match[13], infoBlob = match[15];
 
         if (match[12].match(/серий/)) {
              numOfSeries = match[12].match(/<span>([\s\S]*?)<\/span>/)[1];
              duration = doc.match(/[\s\S]*?Длительность:<\/span>[\s\S]*?<span>([\s\S]*?)<\/span>/)[1];
         } else {
-             duration = match[12].match(/<span>([\s\S]*?)<\/span>/)[1];
+             duration = match[12].match(/<span>([\s\S]*?)<\/span>/);
+             if (duration) duration = duration[1];
         }
 	
         // scraping genres list
@@ -669,7 +653,7 @@
         info = infoBlob.match(/<p>([\s\S]*?)<\/p>/);
 
         page.appendItem(PREFIX + ":showScreenshots:" + url + ':' + escape(title), 'video', {
-            title: title,
+            title: new showtime.RichText(quality ? coloredStr(quality, blue) + ' ' + title : title),
             icon: match[2].match(/http/) ? match[2] : BASE_URL + match[2],
             genre: genres,
             year: year,
@@ -690,7 +674,7 @@
         var trailer = doc.match(/<div class="buttons film">([\s\S]*?)class="trailer/);
         if (trailer) { 
             trailer = trailer[1].match(/href="([\s\S]*?)"/);
-            page.appendItem(PREFIX + ':play:' + escape(trailer[1]) + ':' + escape('Трейлер ' + title) + ':' + url, 'video', {
+            page.appendItem(PREFIX + ':play:' + escape(trailer[1]) + ':' + escape('Трейлер ' + title) + ':' + escape(url), 'video', {
                 title: 'Трейлер'
             });
         }
@@ -728,8 +712,8 @@
             page.appendItem("", "separator", {
                 title: 'Год'
             });
-//'/search?usersearch=&year1=' + year + '&year2=' + year + '&rating=tree&left_val=0&right_val=10&razdel=&country=&global_search=1'
-            page.appendItem(PREFIX + ":scrapeSmall:" + escape(BASE_URL + '/search?usersearch=&/index/index/year1/'+year+'/year2/'+year+'/page/')+':'+escape('Отбор по году ' + year)+':1', 'directory', {
+	    var module = genresBlob.match(/data-module="([\s\S]*?)"/)[1];
+            page.appendItem(PREFIX + ":scrapeSmall:" + escape('/'+ module + '/year/' + year + '/sortType/new/page/')+':'+escape('Отбор по году ' + year)+':1', 'directory', {
                 title: year
             });
         }
@@ -743,7 +727,7 @@
             re2 = /<a class="fast_search"[\s\S]*?rev="([\s\S]*?)"[\s\S]*?data-rel="([\s\S]*?)"[\s\S]*?data-module="([\s\S]*?)"[\s\S]*?href="#"[\s\S]*?>([\s\S]*?)<\/a>/g;
             match = re2.exec(genresBlob);
             while (match) {
-                page.appendItem(PREFIX + ":scrapeSmall:" + escape(BASE_URL + '/search/index/index/janrs/'+match[1]+'/janr_first/'+match[1]+'/razdel/'+match[3]+'/page/')+':'+escape('Отбор по жанру '+trim(match[4]))+':1', 'directory', {
+                page.appendItem(PREFIX + ":scrapeSmall:" + escape('/'+ match[3]+'/janrs/'+match[1]+'/sortType/new/page/')+':'+escape('Отбор по жанру '+trim(match[4]))+':1', 'directory', {
                     title: trim(match[4])
                 });
                 match = re2.exec(genresBlob);
@@ -827,11 +811,10 @@
         //1-link, 2-icon, 3-added, 4-views, 5-rating, 6-quality, 7-title, 8-genre,
         //9-year, 10-country, 11-director, 12-actors, 13-translation, 14-duration,
         //15-description, 16-info
-        var re = /<div class="item open">[\s\S]*?<a href="([\s\S]*?)">[\s\S]*?src="([\s\S]*?)"[\s\S]*?<span>([\s\S]*?)<\/span>[\s\S]*?<span>([\s\S]*?)<\/span>[\s\S]*?<div class="rating">([\s\S]*?)<\/div>[\s\S]*?<span class="[\s\S]*?">([\s\S]*?)<\/span>[\s\S]*?<a href="[\s\S]*?">([\s\S]*?)<\/a>[\s\S]*?Жанр<\/span>([\s\S]*?)<\/span>[\s\S]*?<a href="[\s\S]*?">([\s\S]*?)<\/a>[\s\S]*?<span class="section_item_list">([\s\S]*?)<\/span>[\s\S]*?<span class="section_item_list">([\s\S]*?)<\/span>[\s\S]*?<span class="section_item_list">([\s\S]*?)<\/span>[\s\S]*?<span>([\s\S]*?)<\/span>[\s\S]*?<span>([\s\S]*?)<\/span>[\s\S]*?<div class="description">([\s\S]*?)<\/div>([\s\S]*?)<div class="add_to">/g;
+        var re = /<div class="item open">[\s\S]*?<a href="([\s\S]*?)">[\s\S]*?src="([\s\S]*?)"[\s\S]*?<span>([\s\S]*?)<\/span>[\s\S]*?<span>([\s\S]*?)<\/span>[\s\S]*?<div class="rating">([\s\S]*?)<\/div>[\s\S]*?<span class="[\s\S]*?">([\s\S]*?)<\/span>[\s\S]*?<a href="[\s\S]*?">([\s\S]*?)<\/a>[\s\S]*?Жанр<\/span>([\s\S]*?)<\/span>[\s\S]*?<a href="[\s\S]*?">([\s\S]*?)<\/a>[\s\S]*?<span class="section_item_list">([\s\S]*?)<\/span>[\s\S]*?<span class="section_item_list">([\s\S]*?)<\/span>[\s\S]*?<span class="section_item_list">([\s\S]*?)<\/span>[\s\S]*?<span>([\s\S]*?)<\/span>[\s\S]*?<span>([\s\S]*?)<\/span>[\s\S]*?<div class="description">([\s\S]*?)<\/div>([\s\S]*?)<div class="add_to/g;
         var re2 = /<a href=[\s\S]*?">([\s\S]*?)<\/a>/g;
         function loader() {
             if (!tryToSearch) return false;
-
             page.loading = true;
             var doc = showtime.httpReq(BASE_URL + unescape(url) + fromPage, {
                 headers: {
@@ -853,7 +836,7 @@
                     }
                 }
                 var rating = match[5].match(/<span class="green">/g);
-                var info = match[15].match(/<div class="item_inform_text fl_left">([\s\S]*?)<\/div>/);
+                var info = match[16].match(/<div class="item_inform_text[\s\S]*?">([\s\S]*?)<\/div>/);
                 page.appendItem(PREFIX + ":indexItem:" + match[1], 'video', {
                     title: new showtime.RichText((match[6] ? coloredStr(match[6], blue) + ' ' : '') + trim(match[7])),
                     icon: match[2].match(/http/) ? match[2] : BASE_URL + escape(match[2]),
@@ -886,6 +869,7 @@
         setPageHeader(page, 'Скоро в кино');
         var doc = showtime.httpReq(BASE_URL+ '/default/index/trailers', {
             headers: {
+                'User-Agent': service.UA,
                 'X-Requested-With': 'XMLHttpRequest'
             }
         }).toString();
@@ -893,26 +877,9 @@
         var re = /<a href="([\s\S]*?)" title="([\s\S]*?)">[\s\S]*?src="([\s\S]*?)">/g;
         var match = re.exec(doc);
         while (match) {
-            page.appendItem(PREFIX + ":indexItem:" + match[1], 'video', {
+            page.appendItem(PREFIX + ":indexItem:" + match[1].replace(/#trailer/, ''), 'video', {
                title: trim(match[2]),
-               icon: BASE_URL + escape(match[3])
-            });
-            match = re.exec(doc);
-        }
-        page.loading = false;
-    });
-
-    plugin.addURI(PREFIX + ":collections:(.*):(.*)", function(page, url, title) {
-        setPageHeader(page, plugin.getDescriptor().title + ' - ' + unescape(title));
-        var doc = showtime.httpReq(BASE_URL + url).toString();
-        doc = doc.match(/class="main_content_item">([\s\S]*?)<script type/)[1];
-        // 1-link, 2-icon, 3-title, 4-count
-        var re = /<div class="item">[\s\S]*?<a href="([\s\S]*?)"[\s\S]*?src="([\s\S]*?)"[\s\S]*?href="[\s\S]*?">([\s\S]*?)<\/a>[\s\S]*?<span[\s\S]*?>([\s\S]*?)<\/span>/g;
-        var match = re.exec(doc);
-        while (match) {
-            page.appendItem(PREFIX + ":scrapeCollection:" + escape(BASE_URL + match[1]) + ':' + escape(match[3]), 'video', {
-               title: new showtime.RichText(trim(match[3]) + colorStr(trim(match[4]), orange)),
-               icon: BASE_URL + match[2]
+               icon: match[3].match(/http/) ? match[3] : BASE_URL + match[3]
             });
             match = re.exec(doc);
         }
@@ -921,6 +888,83 @@
 
     plugin.addURI(PREFIX + ":scrape:(.*):(.*)", function(page, url, title) {
         scrape(page, url, title);
+    });
+
+    plugin.addURI(PREFIX + ":scrapeCollection:(.*):(.*)", function(page, url, title) {
+        setPageHeader(page, unescape(title));
+        page.entries = 0;
+        var fromPage = 1, tryToSearch = true;
+        //1-link, 2-icon, 3-added, 4-views, 5-rating, 6-quality, 7-title, 8-genre,
+        //9-year, 10-country, 11-director, 12-actors, 13-translation, 14-duration,
+        //15-description, 16-info
+        var re = /<div class="item open">[\s\S]*?<a href="([\s\S]*?)">[\s\S]*?src="([\s\S]*?)"[\s\S]*?<span>([\s\S]*?)<\/span>[\s\S]*?<span>([\s\S]*?)<\/span>[\s\S]*?<div class="rating">([\s\S]*?)<\/div>[\s\S]*?<span class="[\s\S]*?">([\s\S]*?)<\/span>[\s\S]*?<a href="[\s\S]*?">([\s\S]*?)<\/a>[\s\S]*?Жанр<\/span>([\s\S]*?)<\/span>[\s\S]*?href="#">([\s\S]*?)<\/a>[\s\S]*?<span class="section_item_list">([\s\S]*?)<\/span>[\s\S]*?<span class="section_item_list">([\s\S]*?)<\/span>[\s\S]*?<span class="section_item_list">([\s\S]*?)<\/span>[\s\S]*?<span>([\s\S]*?)<\/span>[\s\S]*?<span>([\s\S]*?)<\/span>[\s\S]*?<div class="description">([\s\S]*?)<\/div>([\s\S]*?)<div class="add_to/g;
+        var re2 = /href=[\s\S]*?">([\s\S]*?)<\/a>/g;
+        function loader() {
+            if (!tryToSearch) return false;
+            page.loading = true;
+            var doc = showtime.httpReq(BASE_URL + unescape(url) + fromPage, {
+                headers: {
+                    Host: 'tree.tv',
+                    Referer: BASE_URL + unescape(url) + fromPage,
+                    'User-Agent': service.UA
+                }
+            }).toString().replace(/^<!--[\s\S]*?[\r\n]/gm, '');
+            page.loading = false;
+            var htmlBlock = doc.match(/<div class="main_content([\s\S]*?)<script/)[1];
+            var match = re.exec(htmlBlock);
+            while (match) {
+                var genre = '';
+                if (match[8]) {
+                    var match2 = re2.exec(match[8]);
+                    while (match2) {
+                        genre += trim(match2[1]);
+                        match2 = re2.exec(match[8]);
+                    }
+                }
+                var rating = match[5].match(/<span class="green">/g);
+                var info = match[16].match(/<p>([\s\S]*?)<\/p>/);
+                page.appendItem(PREFIX + ":indexItem:" + match[1], 'video', {
+                    title: new showtime.RichText((match[6] ? coloredStr(match[6], blue) + ' ' : '') + trim(match[7])),
+                    icon: match[2].match(/http/) ? match[2] : BASE_URL + escape(match[2]),
+                    rating:  rating ? rating.length * 10 : 0,
+                    genre: genre,
+                    year: +match[9],
+                    duration: match[14],
+                    description: new showtime.RichText(coloredStr("Добавлен: ", orange) +
+                        trim(match[3]) + coloredStr(" Просмотров: ", orange) + match[4] +
+                        coloredStr(" Страна: ", orange) + trim(match[10]) +
+                        coloredStr("<br>Режиссер: ", orange) + trim(match[11]) +
+                        coloredStr("<br>Перевод: ", orange) + match[13] +
+                        (info ? coloredStr("<br>Инфо: ", orange) + trim(info[1]) : '') +
+                        coloredStr("<br>Описание: ", orange) + trim(match[15]))
+                });
+                page.entries++;
+                match = re.exec(htmlBlock);
+            }
+            if (!doc.match(/">Еще<\/a>/)) return tryToSearch = false;
+            fromPage++;
+            return true;
+        }
+        loader();
+        page.paginator = loader;
+        page.loading = false;
+    });
+
+    plugin.addURI(PREFIX + ":collections:(.*):(.*)", function(page, url, title) {
+        setPageHeader(page, plugin.getDescriptor().title + ' - ' + unescape(title));
+        var doc = getDoc(BASE_URL + url);
+        doc = doc.match(/class="main_content"([\s\S]*?)<script/)[1];
+        // 1-icon, 2-link, 3-title, 4-count
+        var re = /<div class="item">[\s\S]*?src="([\s\S]*?)"[\s\S]*?href="([\s\S]*?)">([\s\S]*?)<\/a>[\s\S]*?<span[\s\S]*?">([\s\S]*?)<\/span>/g;
+        var match = re.exec(doc);
+        while (match) {
+            page.appendItem(PREFIX + ":scrapeCollection:" + escape(match[2] + '/page/') + ':' + escape(match[3]), 'video', {
+               title: new showtime.RichText(trim(match[3]) + colorStr(trim(match[4]), orange)),
+               icon: BASE_URL + match[1]
+            });
+            match = re.exec(doc);
+        }
+        page.loading = false;
     });
 
     plugin.addURI(PREFIX + ":start", function(page) {
@@ -937,9 +981,15 @@
             var re = /<li class=[\s\S]*?href="([\s\S]*?)">([\s\S]*?)</g;
             var match = re.exec(htmlBlock[1]);
             while (match) {
-                page.appendItem(PREFIX + ':scrapeSmall:' + match[1] + '/sortType/new/page/:' + escape(match[2]) + ':1', 'directory', {
-                   title: trim(match[2])
-                });
+                if (trim(match[2]) == 'Подборки') 
+                    page.appendItem(PREFIX + ':collections:' + match[1] + ':' + escape(trim(match[2])), 'directory', {
+                       title: trim(match[2])
+                    });
+                else
+                   if (trim(match[2]) != 'Новости') 
+                       page.appendItem(PREFIX + ':scrapeSmall:' + match[1] + '/sortType/new/page/:' + escape(match[2]) + ':1', 'directory', {
+                           title: trim(match[2])
+                       });
                 match = re.exec(htmlBlock[1]);
             }
         }
@@ -1010,6 +1060,7 @@
             while (match) {
                 var title = match[5].match(/alt="([\s\S]*?)"/)[1];
                 if (title != '${name}') {
+                     var year = match[2].match(/">([\s\S]*?)<\/a>/);
                      var icon = match[5].match(/src="([\s\S]*?)"/)[1];
                      var rating = match[8].match(/<span class="green">/g);
                      var info = match[1].match(/<div class="item_name_text">([\s\S]*?)<\/div>/);
@@ -1019,7 +1070,7 @@
                          icon: icon.match('http') ? icon : BASE_URL + icon,
                          rating:  rating ? rating.length * 10 : 0,
                          genre: (genre ? genre[1] : trim(match[3])),
-                         year: +trim(match[2]),
+                         year: year ? +year[1] : 0,
                          description: new showtime.RichText(coloredStr("Добавлен: ", orange) +
                              trim(match[6]) + coloredStr(" Просмотров: ", orange) + match[7] +
                              (info ? coloredStr("<br>Инфо: ", orange) + trim(info[1]) : ''))
