@@ -323,7 +323,7 @@
     plugin.addURI(PREFIX + ":play:(.*):(.*):(.*)", function(page, url, title, referer) {
         page.loading = true;
         page.type = 'video';
-        var params = url.split('/'); // 2nd-id, 3rd-source
+        var params = unescape(url).split('/'); // 2nd-id, 3rd-source
         
         log('Trying to process the title: ' + unescape(title) + ' with ID: ' + params[2] + ' Referer: ' + referer);
 
@@ -578,7 +578,7 @@
     var screenshots = 0;
     plugin.addURI(PREFIX + ":indexItem:(.*)", function(page, url) {
         page.loading = true;
-        var doc = getDoc(BASE_URL + url).replace(/^<!--[\s\S]*?[\r\n]/gm, '');
+        var doc = getDoc(BASE_URL + unescape(url)).replace(/^<!--[\s\S]*?[\r\n]/gm, '');
 
         var title = doc.match(/<title>([\s\S]*?)<\/title>/)[1];
         setPageHeader(page, title);
@@ -812,7 +812,7 @@
             });
             isUAset++;
         }
-        return showtime.httpReq(url).toString();        
+        return showtime.httpReq(unescape(url)).toString();        
     }
 
     function scrape(page, url, title) {
@@ -848,7 +848,7 @@
                 }
                 var rating = match[5].match(/<span class="green">/g);
                 var info = match[16].match(/<div class="item_inform_text[\s\S]*?">([\s\S]*?)<\/div>/);
-                page.appendItem(PREFIX + ":indexItem:" + match[1], 'video', {
+                page.appendItem(PREFIX + ":indexItem:" + escape(match[1]), 'video', {
                     title: new showtime.RichText((match[6] ? coloredStr(match[6], blue) + ' ' : '') + trim(match[7])),
                     icon: match[2].match(/http/) ? match[2] : BASE_URL + escape(match[2]),
                     rating:  rating ? rating.length * 10 : 0,
@@ -888,7 +888,7 @@
         var re = /<a href="([\s\S]*?)" title="([\s\S]*?)">[\s\S]*?src="([\s\S]*?)">/g;
         var match = re.exec(doc);
         while (match) {
-            page.appendItem(PREFIX + ":indexItem:" + match[1].replace(/#trailer/, ''), 'video', {
+            page.appendItem(PREFIX + ":indexItem:" + escape(match[1].replace(/#trailer/, '')), 'video', {
                title: trim(match[2]),
                icon: match[3].match(/http/) ? match[3] : BASE_URL + match[3]
             });
@@ -934,7 +934,7 @@
                 }
                 var rating = match[5].match(/<span class="green">/g);
                 var info = match[16].match(/<p>([\s\S]*?)<\/p>/);
-                page.appendItem(PREFIX + ":indexItem:" + match[1], 'video', {
+                page.appendItem(PREFIX + ":indexItem:" + escape(match[1]), 'video', {
                     title: new showtime.RichText((match[6] ? coloredStr(match[6], blue) + ' ' : '') + trim(match[7])),
                     icon: match[2].match(/http/) ? match[2] : BASE_URL + escape(match[2]),
                     rating:  rating ? rating.length * 10 : 0,
@@ -1020,7 +1020,7 @@
             re = /<a href="([\s\S]*?)" title="([\s\S]*?)">[\s\S]*?src="([\s\S]*?)">/g;
             match = re.exec(htmlBlock[1]);
             while (match) {
-                page.appendItem(PREFIX + ":indexItem:" + match[1], 'video', {
+                page.appendItem(PREFIX + ":indexItem:" + escape(match[1]), 'video', {
                    title: trim(match[2]),
                    icon: match[3].match(/http/) ? match[3] : BASE_URL + escape(match[3])
                 });
@@ -1075,7 +1075,7 @@
                      var rating = match[8].match(/<span class="green">/g);
                      var info = match[1].match(/<div class="item_name_text">([\s\S]*?)<\/div>/);
 		     var genre = match[3].match(/">([\s\S]*?)<\/a>/);
-                     page.appendItem(PREFIX + ":indexItem:" + match[4], 'video', {
+                     page.appendItem(PREFIX + ":indexItem:" + escape(match[4]), 'video', {
                          title: new showtime.RichText((match[9] ? coloredStr(match[9], blue) + ' ' : '') + title),
                          icon: icon.match('http') ? icon : BASE_URL + icon,
                          rating:  rating ? rating.length * 10 : 0,
