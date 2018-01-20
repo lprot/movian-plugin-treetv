@@ -4,11 +4,12 @@
 	"homepage": "http://github.com/lprot/movian-plugin-treetv",
 	"title": "Tree.tv",
 	"synopsis": "Tree.tv - online фильмы - новинки кино в хорошем качестве онлайн - бесплатно",
-	"version": "0.5.13",
+	"version": "0.5.14",
         "file": "treetv.js",
 	"showtimeVersion": "4.8",
 	"type": "ecmascript",
 	"id": "tree.tv",
 	"category": "video",
-	"icon": "logo.png"
+	"icon": "logo.png",
+        "apiversion": 2
 }
