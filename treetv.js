@@ -466,10 +466,9 @@ new page.Route(plugin.id + ":play:(.*):(.*):(.*)", function(page, url, title, re
         req.setHeader('Referer', 'http://player.tree.tv/?file=' + params[2] + '&source=' + params[3] + '&user=false');
         req.setHeader('User-Agent', service.UA);
     });
-    var imdbid = getIMDBid(title);
-    var series = title.trim().split('/');
-    var season = null, episode = null;
-    var name = unescape(title).toUpperCase();
+   
+    var episode = null;
+    var name = unescape(title.split(String.fromCharCode(8194))[1]).toUpperCase();
     var season = name.match(/S(\d{1,2})E(\d{3})/); // SxExxx, SxxExxx
     if (!season) season = name.match(/S(\d{1,2})E(\d{2})/); // SxExx, SxxExx
     if (season) {
@@ -478,14 +477,15 @@ new page.Route(plugin.id + ":play:(.*):(.*):(.*)", function(page, url, title, re
         log('Season: ' + season + ' Episode: ' + episode);
     }
     if (!season) { // try to extract from main title
-        series = title.match(/Сезон (\d+)/);
-        if (series)
-            season = +series[1];
+        season = unescape(title.split(String.fromCharCode(8194))[1]).trim().split('/')[0].match(/Сезон (\d+)/);
+        if (season)
+            season = +season[1];
     }
+
     page.source = "videoparams:" + JSON.stringify({
         title: unescape(title),
         canonicalUrl: plugin.id + ':play:' + url + ':' + title + ':' + referer,
-        imdbid: imdbid,
+        imdbid: getIMDBid(unescape(title.split(String.fromCharCode(8194))[0])),
         season: season,
         episode: episode,
         sources: [{
@@ -497,8 +497,8 @@ new page.Route(plugin.id + ":play:(.*):(.*):(.*)", function(page, url, title, re
     page.loading = false;
 });
 
-new page.Route(plugin.id + ":listFolder:(.*):(.*):(.*)", function(page, id, url, title) {
-    setPageHeader(page, unescape(title));
+new page.Route(plugin.id + ":listFolder:(.*):(.*):(.*):(.*)", function(page, id, url, title, fullTitle) {
+    setPageHeader(page, unescape(fullTitle) + ' - ' + unescape(title));
     page.loading = true;
     var doc = getDoc(BASE_URL + url);
     var folder = doc.match(/<div class="screens">([\s\S]*?)<div class="item_right">/)[1];
@@ -508,8 +508,9 @@ new page.Route(plugin.id + ":listFolder:(.*):(.*):(.*)", function(page, id, url,
     while (match) {
         // 1-player link, 2-title, 3-date
         var file = match[1].match(/data-href="([\s\S]*?)" href="#">([\s\S]*?)<\/a>[\s\S]*?<div class="date_file">([\s\S]*?)<\/div>/);
-        page.appendItem(plugin.id + ':play:' + escape(file[1]) + ':' + escape(trim(file[2])) + ':' + escape(url), 'file', {
-            title: new RichText(trim(file[2]) + colorStr(trim(file[3]), blue))
+        page.appendItem(plugin.id + ':play:' + escape(file[1]) + ':' + fullTitle + String.fromCharCode(8194) + escape(trim(file[2])) + ':' + escape(url), 'video', {
+            title: new RichText(trim(file[2]) + colorStr(trim(file[3]), blue)),
+            tagline: new RichText(trim(file[2]) + colorStr(trim(file[3]), blue))
         });
         match = re.exec(doc);
         i++;
@@ -678,7 +679,7 @@ new page.Route(plugin.id + ":indexItem:(.*)", function(page, url) {
     match = re.exec(doc);
     while (match) {
         if (+match[1]) {
-            page.appendItem(plugin.id + ":listFolder:" + match[1] + ':' + url + ':' + escape(match[2]), 'directory', {
+            page.appendItem(plugin.id + ":listFolder:" + match[1] + ':' + url + ':' + escape(match[2]) + ':' + escape(title), 'directory', {
                 title: trim(match[2])
             });
         }
