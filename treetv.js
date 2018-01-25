@@ -523,9 +523,9 @@ new page.Route(plugin.id + ":processJSON:(.*):(.*)", function(page, url, title) 
     page.loading = true;
     var json = JSON.parse(http.request(unescape(url)).toString());
     for (var n in json) {
-        page.appendItem(plugin.id + ":indexItem:/film?id=" + json[n].page_id +
-            "&nameforhref="+json[n].nameforhref +
-            "&name=" + json[n].name_for_url, 'video', {
+        page.appendItem(plugin.id + ':indexItem:' + escape('/film?id=' + json[n].page_id +
+            "&nameforhref=" + json[n].nameforhref +
+            "&name=" + json[n].name_for_url), 'video', {
             title: new RichText((json[n].quality ? coloredStr(json[n].quality, blue) + ' ' : '') + trim(unescape(json[n].name))),
             icon: BASE_URL + escape(json[n].src),
             rating:  json[n].rait * 10,
@@ -540,9 +540,14 @@ new page.Route(plugin.id + ":processJSON:(.*):(.*)", function(page, url, title) 
 });
 
 var screenshots = 0;
-new page.Route(plugin.id + ":showScreenshots:(.*):(.*)", function(page, url, title) {
+new page.Route(plugin.id + ":showScreenshots:(.*):(.*):(.*)", function(page, url, title, icon) {
     setPageHeader(page, unescape(title));
     page.model.contents = 'grid'
+    page.appendItem(unescape(icon), 'image', {
+        title: 'Обложка',
+        icon: unescape(icon)
+    });
+
     if (!screenshots) {
         page.loading = true;
         screenshots = getDoc(BASE_URL + url).match(/<div class="screens">([\s\S]*?)<div class="item_right">/)[1];
@@ -646,30 +651,30 @@ new page.Route(plugin.id + ":indexItem:(.*)", function(page, url) {
         actors = tmp;
    }
    info = infoBlob.match(/<p>([\s\S]*?)<\/p>/);
-   page.appendItem(plugin.id + ":showScreenshots:" + url + ':' + escape(title), 'video', {
+   var icon = match[2].match(/http/) ? match[2] : BASE_URL + match[2];
+   page.appendItem(plugin.id + ":showScreenshots:" + url + ':' + escape(title) + ':' + escape(icon), 'video', {
        title: new RichText(quality ? coloredStr(quality, blue) + ' ' + title : title),
-       icon: match[2].match(/http/) ? match[2] : BASE_URL + match[2],
-       genre: genres,
+       icon: icon,
+       genre: new RichText(genres + coloredStr("<br>Страна: ", orange) + match[9] +
+           coloredStr("<br>Режиссер: ", orange) + directors),
        backdrops: backdrops,
        year: year,
        rating: match[16] * 10,
        duration: duration,
-       tagline: new RichText((info ? coloredStr("Инфо: ", orange) + trim(info[1]) : '')),
+       tagline: new RichText((info ? coloredStr("Инфо: ", orange) + trim(info[1]) : '') +
+           (numOfSeries ? coloredStr(" К-во серий: ", orange) + trim(numOfSeries) : '')),
        source: new RichText(coloredStr("Перевод: ", orange) + match[11]),
        description: new RichText(coloredStr("Просмотров: ", orange) + trim(match[3]) + 
-           coloredStr(" Комментариев: ", orange) + match[4] +
-           coloredStr(" Страна: ", orange) + match[9] +
-           coloredStr(" Режиссер: ", orange) + directors +
-           coloredStr(" Актеры: ", orange) + actors +
-           (numOfSeries ? coloredStr(" К-во серий: ", orange) + trim(numOfSeries) : '') +
-           coloredStr(" Описание: ", orange) + trim(match[14]))
+           coloredStr(" Комментарии: ", orange) + match[4] +
+           //coloredStr(" Актеры: ", orange) + actors +
+           '<br>' + trim(match[14]))
     });
 
     // adding trailer if present
     var trailer = doc.match(/<div class="buttons film">([\s\S]*?)class="trailer/);
     if (trailer) { 
         trailer = trailer[1].match(/href="([\s\S]*?)"/);
-        page.appendItem(plugin.id + ':play:' + escape(trailer[1]) + ':' + escape('Трейлер ' + title) + ':' + escape(url), 'video', {
+        page.appendItem(plugin.id + ':play:' + escape(trailer[1]) + ':' + escape('Трейлер ' + title) + ':' + url, 'video', {
             title: 'Трейлер'
         });
     }
@@ -835,17 +840,17 @@ function scrape(page, url, title) {
                 title: new RichText((match[6] ? coloredStr(match[6], blue) + ' ' : '') + trim(match[7])),
                 icon: match[2].match(/http/) ? match[2] : BASE_URL + escape(match[2]),
                 rating:  rating ? rating.length * 10 : 0,
-                genre: genre,
+                genre: new RichText(genre + 
+                coloredStr("<br>Страна: ", orange) + trim(match[10]) +
+                coloredStr("<br>Режиссер: ", orange) + trim(match[11])),
                 year: match[9] ? +match[9] : '',
                 duration: match[14],
+                source: new RichText(coloredStr("Перевод: ", orange) + match[13]),
                 tagline: new RichText(info ? coloredStr("<br>Инфо: ", orange) + trim(info[1]) : ''),
-                description: new RichText(coloredStr("Добавлен: ", orange) +
-                trim(match[3]) + coloredStr(" Просмотров: ", orange) + match[4] +
-                coloredStr(" Страна: ", orange) + trim(match[10]) +
-                coloredStr("<br>Режиссер: ", orange) + trim(match[11]) +
-                coloredStr("<br>Актеры: ", orange) + trim(match[12]).replace(/[0-9_]/g, '').replace(/,/g, ', ') +
-                coloredStr("<br>Перевод: ", orange) + match[13] +
-                coloredStr("<br>Описание: ", orange) + trim(match[15]))
+                description: new RichText(coloredStr("Добавлен: ", orange) + trim(match[3]) + 
+                    coloredStr(" Просмотров: ", orange) + match[4] +
+                    //coloredStr("<br>Актеры: ", orange) + trim(match[12]).replace(/[0-9_]/g, '').replace(/,/g, ', ') +
+                    '<br>' + trim(match[15]))
             });
             page.entries++;
             match = re.exec(htmlBlock);
@@ -918,16 +923,16 @@ new page.Route(plugin.id + ":scrapeCollection:(.*):(.*)", function(page, url, ti
                 title: new RichText((match[6] ? coloredStr(match[6], blue) + ' ' : '') + trim(match[7])),
                 icon: match[2].match(/http/) ? match[2] : BASE_URL + escape(match[2]),
                 rating:  rating ? rating.length * 10 : 0,
-                genre: genre,
+                genre: new RichText(genre + 
+                    coloredStr("<br>Страна: ", orange) + trim(match[10]) +
+                    coloredStr("<br>Режиссер: ", orange) + trim(match[11])),
                 year: +match[9],
                 duration: match[14],
                 tagline: new RichText(info ? coloredStr("<br>Инфо: ", orange) + trim(info[1]) : ''),
                 description: new RichText(coloredStr("Добавлен: ", orange) +
                     trim(match[3]) + coloredStr(" Просмотров: ", orange) + match[4] +
-                    coloredStr(" Страна: ", orange) + trim(match[10]) +
-                    coloredStr("<br>Режиссер: ", orange) + trim(match[11]) +
-                    coloredStr("<br>Перевод: ", orange) + match[13] +
-                    coloredStr("<br>Описание: ", orange) + trim(match[15]))
+                    coloredStr(" Перевод: ", orange) + match[13] +
+                    '<br>' + trim(match[15]))
             });
             page.entries++;
             match = re.exec(htmlBlock);
