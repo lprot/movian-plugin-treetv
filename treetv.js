@@ -568,13 +568,13 @@ new page.Route(plugin.id + ":showScreenshots:(.*):(.*):(.*)", function(page, url
 new page.Route(plugin.id + ":indexItem:(.*)", function(page, url) {
     page.loading = true;
     var doc = getDoc(BASE_URL + unescape(url)).replace(/^<!--[\s\S]*?[\r\n]/gm, '');
-    var title = doc.match(/<title>([\s\S]*?)<\/title>/)[1];
-    setPageHeader(page, title);
-    page.loading = false;
     // 1-title, 2-icon, 3-views, 4-comments, 5-screenshots, 6-quality,
     // 7-genre, 8-year, 9-country, 10-directors, 11-type of the soundtrack, 12-duration/number of series/absent,
     // 13-actors, 14-description, 15-info, 16-rating
     var match = doc.match(/<div class="content_open">[\s\S]*?<img alt="([\s\S]*?)" [\s\S]*?src="([\s\S]*?)"[\s\S]*?<span>([\s\S]*?)<\/span>[\s\S]*?<span>([\s\S]*?)<\/span>[\s\S]*?<div class="screens">([\s\S]*?)<div class="item_right">([\s\S]*?)<div class="section_item list_janr">([\s\S]*?)<\/div>[\s\S]*?href="#">([\s\S]*?)<\/a>[\s\S]*?<span class="item">([\s\S]*?)<\/span>[\s\S]*?<div class="span_content">([\s\S]*?)<\/div>[\s\S]*?<span>([\s\S]*?)<\/span>([\s\S]*?)<div class="ava_actors"([\s\S]*?)<div class="section_item">[\s\S]*?<div class="description[\s\S]*?>([\s\S]*?)<\/div>([\s\S]*?)<div class="more_actions">[\s\S]*?<span class="green">([\s\S]*?)<\/span>/);
+    title = trim(match[1]);
+    setPageHeader(page, title);
+    page.loading = true;
     screenshots = match[5];
     var backdrops = [];
     var re = /href="([\s\S]*?)">/g;
@@ -591,7 +591,6 @@ new page.Route(plugin.id + ":indexItem:(.*)", function(page, url) {
         var quality = qualityBlob.match(/<span class="quality_film[\s\S]*?">([\s\S]*?)<\/span>/);
         if (quality) quality = quality[1];
     }
-    title = trim(match[1]);
     if (match[12].match(/серий/)) {
          numOfSeries = match[12].match(/<span>([\s\S]*?)<\/span>/)[1];
          duration = doc.match(/[\s\S]*?Длительность:<\/span>[\s\S]*?<span>([\s\S]*?)<\/span>/)[1];
@@ -651,7 +650,7 @@ new page.Route(plugin.id + ":indexItem:(.*)", function(page, url) {
         actors = tmp;
    }
    info = infoBlob.match(/<p>([\s\S]*?)<\/p>/);
-   var icon = match[2].match(/http/) ? match[2] : BASE_URL + match[2];
+   var icon = page.metadata.logo = match[2].match(/http/) ? match[2] : BASE_URL + match[2];
    page.appendItem(plugin.id + ":showScreenshots:" + url + ':' + escape(title) + ':' + escape(icon), 'video', {
        title: new RichText(quality ? coloredStr(quality, blue) + ' ' + title : title),
        icon: icon,
@@ -791,6 +790,7 @@ new page.Route(plugin.id + ":indexItem:(.*)", function(page, url) {
             match = re2.exec(comments[1]);
         }
     }
+    page.loading = false;
 });
 
 function getDoc(url) {
