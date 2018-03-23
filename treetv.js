@@ -773,7 +773,7 @@ new page.Route(plugin.id + ":indexItem:(.*)", function(page, url) {
     var first = true;
     if (comments) {
         // 1-nick, 2-icon, 3-date, 4-likes up, 5-likes down, 6-text
-        re2 = /<a class=[\s\S]*?'>([\s\S]*?)<\/a>[\s\S]*?src='([\s\S]*?)'[\s\S]*?<span class='[\s\S]*?'>([\s\S]*?)<\/span>[\s\S]*?<span>([\s\S]*?)<\/span>[\s\S]*?<span>([\s\S]*?)<\/span>[\s\S]*?<p>([\s\S]*?)<\/p>/g;
+        re2 = /<a class=[\s\S]*?'>([\s\S]*?)<\/a>[\s\S]*?src='([\s\S]*?)'[\s\S]*?<span class='[\s\S]*?'>([\s\S]*?)<\/span>[\s\S]*?<span>([\s\S]*?)<\/span>[\s\S]*?<span>([\s\S]*?)<\/span>[\s\S]*?<p[\s\S]*?>([\s\S]*?)<\/p>/g;
         match = re2.exec(comments[1]);
         while (match) {
             if (first) {
